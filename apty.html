@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<HTML>
+
+<HEAD>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" type="text/css" href="css/default.css" />
+    <link rel="stylesheet" type="text/css" href="css/component.css" />
+    <script src="js/modernizr.custom.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="js/jquery.dlmenu.js"></script>
+
+
+    <script>
+        var JSONMENU =
+        {
+            menu:
+                [
+                    { name: 'Croatia', link: '0', sub: null },
+                    {
+                        name: 'England', link: '1', sub:
+                            [
+                                { name: 'Arsenal', link: '4', sub: 
+                                           [ 
+                                               { name: 'WBA', link: '98', searchitems: 'England, WBA', sub: null }, 
+                                               { name: 'Crystal Pallace', link: '98', searchitems: 'England, Crystal Pallace', sub: null }
+                                           ] },
+                                { name: 'Liverpool', link: '5', sub: null },
+                                { name: 'Manchester United', link: '6', sub: null }
+                            ]
+                    },
+                    {
+                        name: 'Spain', link: '2', sub:
+                            [
+                                { name: 'Barcelona', link: '7', sub: null },
+                                { name: 'Real Madrid', link: '8', sub: null }
+                            ]
+                    },
+                    {
+                        name: 'Germany', link: '3', sub:
+                            [
+                                { name: 'Bayern Munich', link: '9', sub: null },
+                                { name: 'Borrusia Dortmund', link: '99', sub: null }
+                            ]
+                    }
+                ]
+        }
+
+        var search =
+                {
+                    searchitems:
+                        [
+                            { name: 'Croatia', link: '0', searchitems: 'Croatia', sub: null, searchitems: 'Croatia' },
+                            {
+                                name: 'England', link: '1', searchitems: 'England', sub:
+                                    [
+                                        { name: 'Arsenal', link: '4', searchitems: 'England, Arsenal', sub: 
+                                           [ 
+                                               { name: 'WBA', link: '98', searchitems: 'England, WBA', sub: null }, 
+                                               { name: 'Crystal Pallace', link: '98', searchitems: 'England, Crystal Pallace', sub: null }
+                                           ]
+                                        },
+                                        { name: 'Liverpool', link: '5', searchitems: 'England, Liverpool', sub: null },
+                                        { name: 'Manchester United', link: '6', searchitems: 'England, Manchester United, Manchester', sub: null }
+                                    ]
+                            },
+                            {
+                                name: 'Spain', link: '2', searchitems: 'Spain', sub:
+                                    [
+                                        { name: 'Barcelona', link: '7', searchitems: 'Spain, Barcelona', sub: null },
+                                        { name: 'Real Madrid', link: '8', searchitems: 'Spain, Real, Real Madrid', sub: null }
+                                    ]
+                            },
+                            {
+                                name: 'Germany', link: '3', searchitems: 'Germany', sub:
+                                    [
+                                        { name: 'Bayern Munich', link: '9', searchitems: 'Germany, Bayern Munich, Bayern', sub: null },
+                                        { name: 'Borrusia Dortmund', link: '99', searchitems: 'Germany, Borussia Dortmund, Borrusia', sub: null }
+                                    ]
+                            }
+                        ]
+                }
+
+        function Bind()
+        {
+            $('input[name="searchbox"]').unbind('keypress');
+                $('input[name="searchbox"]').bind('keypress', function (e) {
+                    var code = e.keyCode || e.which;
+                    if (code == 13) { //Enter keycode
+                        var searchterm = $(this).val().toUpperCase();
+                        var foundJSON = deepSearch(search, 'searchitems', (k, v) => v === searchterm, searchterm);
+                        
+                        EnumerateMenu(JSON.parse(JSON.stringify({ menu: foundJSON })), true);
+                        
+                        $('#dl-menu').dlmenu();
+
+                        $('#dl-menu ul:first').removeClass('dl-subview');
+                        $('#dl-menu ul:first').addClass('dl-menuopen');
+                        
+                        function deepSearch(object, key, predicate, searchstring) {
+                            let ret = [];
+                            debugger;
+                            if (object.hasOwnProperty(key) && object[key].toString().toUpperCase().includes(searchstring))
+                                ret = [...ret, object];
+
+                            for (let i = 0; i < Object.keys(object).length; i++) {
+                                let value = object[Object.keys(object)[i]];
+                                if (typeof value === "object" && value != null) {
+                                    let o = deepSearch(object[Object.keys(object)[i]], key, predicate, searchstring)
+                                    if (o != null && o instanceof Array) {
+                                        ret = [...ret, ...o];
+                                    }
+                                }
+                            }
+                            return ret
+                        }
+                    }
+                });
+        }
+        function EnumerateMenu(currentMenu, isSub) {
+            $("#dl-menu > .dl-menu").children().remove();
+
+                    var getMenuItem = function (itemData) {
+                        var item = $("<li>")
+                            .append(
+                                $("<a>", {
+                                    href: '#' + itemData.link,
+                                    html: itemData.name
+                                }));
+
+                        if (itemData.sub) {
+                            var subList = $("<ul class='dl-submenu'>");
+                            $.each(itemData.sub, function () {
+                                subList.append(getMenuItem(this));
+                            });
+                            item.append(subList);
+                        }
+                        return item;
+                    };
+
+                    var $menu = $("#dl-menu").find(".dl-menu"); 
+                    if (isSub) //AKO JE U PITANJU REZULTAT SEARCH OPERACIJE
+                    {
+                        $("#searchbox").val="";
+                        var itemBack = $("<li class='dl-back'>")
+                            .append(
+                                $("<a>", {
+                                    href: '#',
+                                    onclick: 'javascript:EnumerateMenu(JSONMENU, false);$("#dl-menu").dlmenu();Bind();',
+                                    html: 'back'
+                                }));
+                        $menu.append(itemBack);
+                    }
+                    else
+                    {
+                        var itemBack = $("<form class='cd-search' onsubmit='return false;'>")
+                            .append(
+                                $("<input>", {
+                                    id: 'sarchbox',
+                                    name: 'searchbox', 
+                                    type: 'search',
+                                    placeholder: 'Search...', 
+                                    autocomplete: "off"
+                                }));
+                        $menu.append(itemBack);  
+                    }
+                    $.each(currentMenu.menu, function () {
+                        $menu.append(
+                            getMenuItem(this)
+                        );
+                    });
+
+                };
+        $(function () {
+            $(document).ready(function () {
+                $.support.cors = true;
+
+                EnumerateMenu(JSONMENU, false);
+                $('#dl-menu').dlmenu();
+                Bind();
+
+
+            })
+        });
+    </script>
+</HEAD>
+
+<BODY>
+    <div class="container demo-1">
+        <div class="main clearfix">
+            <div class="column">
+                <div id="dl-menu" class="dl-menuwrapper open-to-top">
+                    <button class="dl-trigger">Open Menu</button>
+                    <ul class="dl-menu">
+
+                    </ul>
+                </div><!-- /dl-menuwrapper -->
+            </div>
+        </div>
+    </div><!-- /container -->
+</BODY>
+
+</HTML>
